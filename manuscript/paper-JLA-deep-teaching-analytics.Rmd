@@ -1,0 +1,10 @@
+---
+title: "Test Report"
+author: "Your Name"
+date: "July 3, 2015"
+output:
+  word_document:
+    reference_docx: JLA-style-sheet.docx
+---
+
+TODO: Update styles in the JLA template so that they actually match the JLA guidelines! see http://rmarkdown.rstudio.com/articles_docx.html and http://stackoverflow.com/questions/29440007/changing-word-template-for-knitr-in-rmarkdown
