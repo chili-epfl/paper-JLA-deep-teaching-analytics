@@ -6,6 +6,8 @@ Application of deep learning models to the automated extraction of orchestration
 Project Organization
 ------------
 
+(created with http://drivendata.github.io/cookiecutter-data-science/ )
+
     ├── LICENSE
     ├── Makefile           <- Makefile with commands like `make data` or `make train`
     ├── README.md          <- The top-level README for developers using this project.
