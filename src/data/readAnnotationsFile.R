@@ -15,7 +15,7 @@ readAnnotationsFile <- function(file){
     # We get the data for each Annotation Tier
     comments <- data.frame(start=numeric(), end=numeric(), annotation=character())
     social <- data.frame(start=numeric(), end=numeric(), annotation=character())
-    experimental <- data.frame(start=numeric(), end=numeric(), annotation=character())
+    # experimental <- data.frame(start=numeric(), end=numeric(), annotation=character())
     activity <- data.frame(start=numeric(), end=numeric(), annotation=character())
     recording <- data.frame(start=numeric(), end=numeric(), annotation=character())
     for (tier in parsedXML[names(parsedXML) %in% "TIER"]){
@@ -63,15 +63,15 @@ readAnnotationsFile <- function(file){
             }
         }
         
-        if(tierName=="Experimental part"){# Experimental part tier
-            for(annot2 in tier[names(tier) %in% "ANNOTATION"]){
-                annot <- annot2$ALIGNABLE_ANNOTATION
-                annotation <- data.frame(start=as.numeric(as.character(annotationTimes[annotationTimes$TIME_SLOT_ID==annot$.attrs["TIME_SLOT_REF1"],"TIME_VALUE"])), 
-                                         end=as.numeric(as.character(annotationTimes[annotationTimes$TIME_SLOT_ID==annot$.attrs["TIME_SLOT_REF2"],"TIME_VALUE"])),
-                                         annotation=annot$ANNOTATION_VALUE)
-                experimental <- rbind(experimental,annotation)
-            }
-        }
+        # if(tierName=="Experimental part"){# Experimental part tier
+        #     for(annot2 in tier[names(tier) %in% "ANNOTATION"]){
+        #         annot <- annot2$ALIGNABLE_ANNOTATION
+        #         annotation <- data.frame(start=as.numeric(as.character(annotationTimes[annotationTimes$TIME_SLOT_ID==annot$.attrs["TIME_SLOT_REF1"],"TIME_VALUE"])), 
+        #                                  end=as.numeric(as.character(annotationTimes[annotationTimes$TIME_SLOT_ID==annot$.attrs["TIME_SLOT_REF2"],"TIME_VALUE"])),
+        #                                  annotation=annot$ANNOTATION_VALUE)
+        #         experimental <- rbind(experimental,annotation)
+        #     }
+        # }
         
     }
     
@@ -80,8 +80,9 @@ readAnnotationsFile <- function(file){
     recording$tier = "Recording"
     activity$tier = "Activity"
     social$tier = "Social"
-    experimental$tier = "Experimental"
-    annotations = rbind(comments,recording,activity,social,experimental)
+#    experimental$tier = "Experimental"
+#    annotations = rbind(comments,recording,activity,social,experimental)
+    annotations = rbind(comments,recording,activity,social)
     annotations
 
     
