@@ -2,6 +2,7 @@
 title: "Test Report"
 author: "Your Name"
 date: "July 3, 2015"
+abstract: Traditionally, the pedagogical approach has been considered the main component responsible for the learning outcomes of a lesson. However, research has also shown the importance of teachers' specific actions and discourse in this regard, especially in authentic face-to-face settings, where unexpected events and opportunities often emerge. So far, this teacher orchestration has been studied through observational analyses and subsequent coding by human experts, but such analyses of teaching practice are not scalable, and cannot be expected to directly benefit practitioners (e.g., for reflection on their everyday practice). In order to help practitioners and researchers in understanding the influence of orchestration in learning in a scalable manner, in this paper we present a method for the automated extraction of the teacher activities and social plane of interaction (also known as an 'orchestration graph'), leveraging machine learning methods and multimodal data gathering with wearable sensors. Our results, based on a dataset of 16 sessions from 4 different teachers, recorded in face-to-face secondary school classrooms, demonstrate the feasibility of the approach and the computational and data gathering tradeoffs that future applications of these methods will face.
 output:
   word_document:
     reference_docx: JLA-style-sheet.docx
