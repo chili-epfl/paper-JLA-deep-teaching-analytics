@@ -124,10 +124,42 @@ z <- gzfile(paste(interimdatadir,"accelData.csv.gz",sep=.Platform$file.sep),"w")
 write.csv(accelData, z)
 close(z)
 
+source('getWindowTimes.R')
+# To extract audio/video/eyetrack features, we need a window length
+window.ms <- 10000 # For now, extract in 10s windows, with 5s overlaps
+slide.ms <- window.ms/2
+window.times <- getWindowTimes(sessions, window.ms, slide.ms) # get the mid-window timestamps, for audio/video/eyetrack data (both original and new)
+# Add the target variables for each window (predominant tags per window, tags in the exact mid-window)
+v <- apply(window.times, 1, function(x) getActivityForTimestamp(x[1], annotationsData, x[3]))
+v2 <- lapply(v, function(x) ifelse(length(x)==0, NA, x))
+window.times$Activity.inst <- unlist(v2)
+v <- apply(window.times, 1, function(x) getSocialForTimestamp(x[1], annotationsData, x[3]))
+v2 <- lapply(v, function(x) ifelse(length(x)==0, NA, x))
+window.times$Social.inst <- unlist(v2)
+v <- apply(window.times, 1, function(x) getActivityForWindow(x[1], annotationsData, x[3], F, window.ms))
+v2 <- lapply(v, function(x) ifelse(length(x)==0, NA, x))
+window.times$Activity.win <- unlist(v2)
+v <- apply(window.times, 1, function(x) getSocialForWindow(x[1], annotationsData, x[3], F, window.ms))
+v2 <- lapply(v, function(x) ifelse(length(x)==0, NA, x))
+window.times$Social.win <- unlist(v2)
+z <- gzfile(paste(interimdatadir,"windowTimes.csv.gz",sep=.Platform$file.sep),"w")
+write.csv(window.times, z)
+close(z)
+
+# video data (extract the desired frames from it, and tag them with the timestamp and the target values?
+# note: ensure that the directory does not exist before running this!!!
+dir.create(paste(interimdatadir,"videoframes",sep=.Platform$file.sep))
+source('extractFrameFromVideo.R')
+for(i in 1:nrow(window.times)){
+    sample <- window.times[i,]
+    extractFrameFromVideo(sample$timestamp, sample$timestamp.orig, sample$session, rawdatadir, paste(interimdatadir,"videoframes",sep=.Platform$file.sep))
+}
+
+
 # eyetracking data
 
 
 # audio data (create the snippets of the desired length, and tag them with the mid-snippet timestamp and the target values?
 
 
-# video data (extract the desired frames from it, and tag them with the timestamp and the target values?
+# share the data! https://it.epfl.ch/business_service.do?sysparm_document_key=cmdb_ci_service,e15c30a900e0ce000cde3b72ada75e7e&sysparm_service=SWITCHfilesender&sysparm_lang=en
