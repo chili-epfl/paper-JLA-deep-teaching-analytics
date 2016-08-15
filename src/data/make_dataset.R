@@ -154,12 +154,23 @@ for(i in 1:nrow(window.times)){
     sample <- window.times[i,]
     extractFrameFromVideo(sample$timestamp, sample$timestamp.orig, sample$session, rawdatadir, paste(interimdatadir,"videoframes",sep=.Platform$file.sep))
 }
+# TODO: Running through pre-trained visual neural network models would go here (Lukasz)
+
+# audio data (create the snippets of the desired length, and tag them with the mid-snippet timestamp?)
+dir.create(paste(interimdatadir,"audiosnippets",sep=.Platform$file.sep))
+source('extractAudioSnippets.R')
+for(i in 1:nrow(window.times)){
+    sample <- window.times[i,]
+    extractAudioSnippet(sample$timestamp, sample$timestamp.orig, sample$session, rawdatadir, paste(interimdatadir,"audiosnippets",sep=.Platform$file.sep), window.ms)
+}
 
 
-# eyetracking data
+
+# feature extraction from audio data
 
 
-# audio data (create the snippets of the desired length, and tag them with the mid-snippet timestamp and the target values?
+# feature extraction from eyetracking data (see LAK paper)
+
 
 
 # share the data! https://it.epfl.ch/business_service.do?sysparm_document_key=cmdb_ci_service,e15c30a900e0ce000cde3b72ada75e7e&sysparm_service=SWITCHfilesender&sysparm_lang=en
