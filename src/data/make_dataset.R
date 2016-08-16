@@ -157,20 +157,35 @@ for(i in 1:nrow(window.times)){
 # TODO: Running through pre-trained visual neural network models would go here (Lukasz)
 
 # audio data (create the snippets of the desired length, and tag them with the mid-snippet timestamp?)
-dir.create(paste(interimdatadir,"audiosnippets",sep=.Platform$file.sep))
+interimAudioDir <- paste(interimdatadir,"audiosnippets",sep=.Platform$file.sep)
+if(dir.exists(interimAudioDir)) unlink(interimAudioDir, recursive=TRUE)
+dir.create(interimAudioDir)
 source('extractAudioSnippets.R')
 for(i in 1:nrow(window.times)){
     sample <- window.times[i,]
     extractAudioSnippet(sample$timestamp, sample$timestamp.orig, sample$session, rawdatadir, paste(interimdatadir,"audiosnippets",sep=.Platform$file.sep), window.ms)
 }
 
-
-
 # feature extraction from audio data
+openSmileDir <- "/home/lprisan/workspace/openSMILE-2.1.0/" # Change to the dir where openSMILE 2.1.0 has been cloned/installed
+audiofeatures <- data.frame() # The instantaneous value of Activity/Social is not interesting since we analyze the snippet of the whole 10s
+for(i in 1:nrow(window.times)){ # For each window/snippet
+    snippet <- window.times[i,-c(4,5)]
+
+    snippetfeatures <- extractFeaturesFromSnippet(snippet, openSmileDir, interimAudioDir)
+        
+    if(nrow(audiofeatures)==0) audiofeatures <- snippetfeatures
+    else audiofeatures <- rbind(audiofeatures, snippetfeatures)
+}
+# We write the audio dataset to an interim csv
+z <- gzfile(paste(interimdatadir,"audioData.csv.gz",sep=.Platform$file.sep),"w")
+write.csv(audiofeatures, z)
+close(z)
 
 
 # feature extraction from eyetracking data (see LAK paper)
 
 
+# feature extraction from accelerometer data (see LAK paper)
 
-# share the data! https://it.epfl.ch/business_service.do?sysparm_document_key=cmdb_ci_service,e15c30a900e0ce000cde3b72ada75e7e&sysparm_service=SWITCHfilesender&sysparm_lang=en
+
