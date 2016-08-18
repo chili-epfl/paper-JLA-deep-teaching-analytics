@@ -217,6 +217,9 @@ totaldata <- merge(eyetrackdata[,-c(4,5)],accelfeatures[,-c(4,5)],all=T)
 totaldata <- merge(totaldata, audiofeatures, all=T)
 # TODO: Video features are wrong! generate again...
 # totaldata <- merge(totaldata, videodata[,-c(1,1002)],all=T)
+# Order by session and timestamp, in case we want to do time series
+# totaldata <- totaldata[ order(totaldata[,2], totaldata[,3]), ]
+# head(totaldata)
 z <- gzfile(paste(processeddatadir,"completeDataset.csv.gz",sep=.Platform$file.sep),"w")
 write.csv(totaldata, z)
 close(z)
