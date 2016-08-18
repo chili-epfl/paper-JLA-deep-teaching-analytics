@@ -1,9 +1,9 @@
-# Munges the raw data files into a set of clean(er) data (CSV) files, 
+# Munges the raw data files into a set of clean(er) data (CSV) files,
 # aligned but with potentially different sampling rates
-# 
+#
 # Assumptions:
 # 0. The working directory is that where this R file lives
-# 1. The original data files have been copied into the data/raw/caseX folder, 
+# 1. The original data files have been copied into the data/raw/caseX folder,
 #    with names like (case1-day1-session2-teacher1)-kindofdata.extension
 #    (case1-day1-session2-teacher1) = sessionid
 # 2. Will put the cleaner data files in the data/interim folder
@@ -14,6 +14,7 @@ source('getTargetValues.R')
 originalwd <- getwd()
 rawdatadir <- paste(originalwd,"../../data/raw",sep = .Platform$file.sep)
 interimdatadir <- paste(originalwd,"../../data/interim",sep = .Platform$file.sep)
+processeddatadir <- paste(originalwd,"../../data/processed",sep = .Platform$file.sep)
 #setwd(rawdatadir)
 
 # TODO: Add more sessions here as we add case studies with different teachers
@@ -76,9 +77,9 @@ suffix.video <- "video"
 suffix.coding <- "videocoding"
 
 # STEP 1: ALIGNMENT OF THE DIFFERENT DATA SOURCES
-# We take from the video coding the moment all sources are recording 
+# We take from the video coding the moment all sources are recording
 # (teacher clicks record on mobile phone tracker)
-# This origin of time will be applied to all subsequent processing of raw data, 
+# This origin of time will be applied to all subsequent processing of raw data,
 # so as to have aligned data, even for different sampling rates
 annotationsData <- data.frame()
 for (i in 1:nrow(sessions)){
@@ -88,7 +89,7 @@ for (i in 1:nrow(sessions)){
     if(nrow(annotationsData)==0) annotationsData = session.annot
     else annotationsData = rbind(annotationsData,session.annot)
 }
-# We add the start and end timestamps (from the point of view of the ET recording) of our dataset for each session. 
+# We add the start and end timestamps (from the point of view of the ET recording) of our dataset for each session.
 # These will be the origin of our unified/aligned dataset
 initendtimes <- annotationsData[annotationsData$tier=="Recording" & annotationsData$annotation=="Recording",c("start","end","session")]
 sessions <- merge(sessions,initendtimes)
@@ -97,7 +98,7 @@ sessions <- merge(sessions,initendtimes)
 # Accelerometer data
 accelData <- data.frame()
 for (i in 1:nrow(sessions)){
-    
+
     session.accel <- readTrackerFile(paste(rawdatadir,.Platform$file.sep,sessions[i,'session'],"-",suffix.acc,"-1.txt",sep=""))
     session.accel <- rbind(session.accel, readTrackerFile(paste(rawdatadir,.Platform$file.sep,sessions[i,'session'],"-",suffix.acc,"-2.txt",sep="")))
     session.accel$session <- sessions[i,'session'] # We add the session ID to the annotations
@@ -107,7 +108,7 @@ for (i in 1:nrow(sessions)){
     # We set the aligned timestamp (the initial timestamp for the accel file marks the origin, nothing to do with the eyetracker timestamp)
     session.accel$timestamp.orig <- session.accel$timestamp
     session.accel$timestamp <- session.accel$timestamp - session.accel$timestamp[1]
-    
+
     # We add the two target variables, in case we want to use the interim data file for training directly
     v <- sapply(session.accel$timestamp, getActivityForTimestamp, annotationsData, sessions[i,'session'])
     v2 <- lapply(v, function(x) ifelse(length(x)==0, NA, x))
@@ -115,12 +116,12 @@ for (i in 1:nrow(sessions)){
     v <- sapply(session.accel$timestamp, getSocialForTimestamp, annotationsData, sessions[i,'session'])
     v2 <- lapply(v, function(x) ifelse(length(x)==0, NA, x))
     session.accel$Social <- unlist(v2)
-    
+
     if(nrow(accelData)==0) accelData = session.accel
     else accelData = rbind(accelData,session.accel)
 }
 # We write the clean, aligned data to an interim csv
-z <- gzfile(paste(interimdatadir,"accelData.csv.gz",sep=.Platform$file.sep),"w")
+z <- gzfile(paste(interimdatadir,"accelDataRaw.csv.gz",sep=.Platform$file.sep),"w")
 write.csv(accelData, z)
 close(z)
 
@@ -154,7 +155,15 @@ for(i in 1:nrow(window.times)){
     sample <- window.times[i,]
     extractFrameFromVideo(sample$timestamp, sample$timestamp.orig, sample$session, rawdatadir, paste(interimdatadir,"videoframes",sep=.Platform$file.sep))
 }
-# TODO: Running through pre-trained visual neural network models would go here (Lukasz)
+# TODO: Add code to run through pre-trained visual neural network models would go here (Lukasz)
+# We read the resulting zipped csv file
+videofeaturesfile <- paste(interimdatadir,"videofeatures-lastlayer.zip", sep=.Platform$file.sep)
+videodata <- read.csv(unz(description = videofeaturesfile, filename = "output.csv"), stringsAsFactors = F, header = F)
+videodata$filename <- basename(videodata[,1])
+videodata$timestamp <- gsub(".*\\__(.*)\\..*", "\\1", videodata$filename)
+videodata$session <- sub("__.*", "", videodata$filename)
+names(videodata)[[1]] <- 'full.path'
+names(videodata)[2:1001] <- paste("V",1:1000,sep="")
 
 # audio data (create the snippets of the desired length, and tag them with the mid-snippet timestamp?)
 interimAudioDir <- paste(interimdatadir,"audiosnippets",sep=.Platform$file.sep)
@@ -168,24 +177,46 @@ for(i in 1:nrow(window.times)){
 
 # feature extraction from audio data
 openSmileDir <- "/home/lprisan/workspace/openSMILE-2.1.0/" # Change to the dir where openSMILE 2.1.0 has been cloned/installed
+source('extractAudioFeatures.R')
 audiofeatures <- data.frame() # The instantaneous value of Activity/Social is not interesting since we analyze the snippet of the whole 10s
 for(i in 1:nrow(window.times)){ # For each window/snippet
     snippet <- window.times[i,-c(4,5)]
 
     snippetfeatures <- extractFeaturesFromSnippet(snippet, openSmileDir, interimAudioDir)
-        
+
     if(nrow(audiofeatures)==0) audiofeatures <- snippetfeatures
     else audiofeatures <- rbind(audiofeatures, snippetfeatures)
 }
-# We write the audio dataset to an interim csv
+#We write the audio dataset to an interim csv
 z <- gzfile(paste(interimdatadir,"audioData.csv.gz",sep=.Platform$file.sep),"w")
 write.csv(audiofeatures, z)
 close(z)
 
 
 # feature extraction from eyetracking data (see LAK paper)
+source('extractEyetrackingFeatures.R')
+eyetrackdata <- extractEyetrackingFeatures(sessions, rawdatadir, window.ms, slide.ms, suffix.et.raw, suffix.et.fix, suffix.et.sac)
+names(eyetrackdata)[[1]] <- "timestamp.orig"
+eyetrackdata <- merge(window.times,eyetrackdata,all=T)
+# We write the eyetracking dataset to an interim csv
+z <- gzfile(paste(interimdatadir,"eyetrackData.csv.gz",sep=.Platform$file.sep),"w")
+write.csv(eyetrackdata, z)
+close(z)
 
+# feature extraction from accelerometer data (see LAK paper): avg/sd/max/min/median of X,Y,Z, 30-coef FFT of X,Y,Z, avg/sd/max/min/median of Jerk, 30-coef FFT of jerk
+source('extractAccelerometerFeatures.R')
+accelfeatures <- extractAccelerometerFeatures(sessions, accelData, window.ms, slide.ms, fftcomp=30)
+names(accelfeatures)[[1]] <- "timestamp"
+accelfeatures <- merge(window.times,accelfeatures,all=T)
+z <- gzfile(paste(interimdatadir,"accelFeatures.csv.gz",sep=.Platform$file.sep),"w")
+write.csv(accelfeatures, z)
+close(z)
 
-# feature extraction from accelerometer data (see LAK paper)
-
-
+# Merge the different interim datasets to form the final clean dataset
+totaldata <- merge(eyetrackdata[,-c(4,5)],accelfeatures[,-c(4,5)],all=T)
+totaldata <- merge(totaldata, audiofeatures, all=T)
+# TODO: Video features are wrong! generate again...
+# totaldata <- merge(totaldata, videodata[,-c(1,1002)],all=T)
+z <- gzfile(paste(processeddatadir,"completeDataset.csv.gz",sep=.Platform$file.sep),"w")
+write.csv(totaldata, z)
+close(z)
