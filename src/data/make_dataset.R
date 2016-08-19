@@ -17,7 +17,7 @@ interimdatadir <- paste(originalwd,"../../data/interim",sep = .Platform$file.sep
 processeddatadir <- paste(originalwd,"../../data/processed",sep = .Platform$file.sep)
 #setwd(rawdatadir)
 
-# TODO: Add more sessions here as we add case studies with different teachers
+# Add more sessions here as we add case studies with different teachers
 sessions <- data.frame(session=c("case1-day1-session1-teacher1",
                               "case1-day1-session2-teacher1",
                               "case1-day1-session3-teacher1",
@@ -155,7 +155,8 @@ for(i in 1:nrow(window.times)){
     sample <- window.times[i,]
     extractFrameFromVideo(sample$timestamp, sample$timestamp.orig, sample$session, rawdatadir, paste(interimdatadir,"videoframes",sep=.Platform$file.sep))
 }
-# TODO: Add code to run through pre-trained visual neural network models would go here (Lukasz)
+# [MANUAL] Run through pre-trained visual neural network models, see https://github.com/kidzik/deep-features
+# [MANUAL] Put the output.csv file into a videofeatures-lastlayer.csv.zip file in the data/interim dir
 # We read the resulting zipped csv file
 videofeaturesfile <- paste(interimdatadir,"videofeatures-lastlayer.csv.zip", sep=.Platform$file.sep)
 videodata <- read.csv(unz(description = videofeaturesfile, filename = "output.csv"), stringsAsFactors = F, header = F)
