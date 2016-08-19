@@ -72,6 +72,21 @@ close(z)
 
 ```
 
+# Dataset overview
+
+Both the training and testing datasets have the following general structure:
+
+* ''Rows'' represent the features of each 10s window (overlapping/sliding 5s), ordered by `session` ID and its `timestamp` (in ms)
+
+* ''Columns'' are the features themselves (they have more-or-less-cryptic column names), up to 7559 of them!
+    * [,1]: ''session id''
+    * [,2]: ''timestamp'' within the session (in ms)
+    * [,3:12]: ''eyetracking'' features (mean/sd pupil diameter, nr. of long fixations, avg. saccade speed, fixation duration, fixation dispersion, saccade duration, saccade amplitude, saccade length, saccade velocity)
+    * [,13:152]: ''accelerometer'' features, including X, Y, Z (mean, sd, max, min, median, and 30 FFT coefficients of each of them) and jerk (mean, sd, max, min, median, and 30 FFT coefficients of each of it)
+    * [,153:6557]: ''audio'' features extracted from an audio snippet of the 10s window, using openSMILE. Includes features about whether there is someone speaking (153:163), emotion recognition models (164:184), and brute-force audio spectrum features and characteristics used in various audio recognition challenges/tasks (185:6557)
+    * [,6558:7559]: ''video'' features extracted from an image taken in the middle of the window (the 1000 values of the last layer when passing the immage through a VGG pre-trained model)
+    
+
 # A basic benchmark: Random Forest
 
 Since RF performed quite well in most cases for our LAK paper dataset, let's try it on the whole dataset and see what comes out, as a baseline for modelling
