@@ -157,7 +157,7 @@ for(i in 1:nrow(window.times)){
 }
 # TODO: Add code to run through pre-trained visual neural network models would go here (Lukasz)
 # We read the resulting zipped csv file
-videofeaturesfile <- paste(interimdatadir,"videofeatures-lastlayer.zip", sep=.Platform$file.sep)
+videofeaturesfile <- paste(interimdatadir,"videofeatures-lastlayer.csv.zip", sep=.Platform$file.sep)
 videodata <- read.csv(unz(description = videofeaturesfile, filename = "output.csv"), stringsAsFactors = F, header = F)
 videodata$filename <- basename(videodata[,1])
 videodata$timestamp <- gsub(".*\\__(.*)\\..*", "\\1", videodata$filename)
@@ -215,10 +215,9 @@ close(z)
 # Merge the different interim datasets to form the final clean dataset
 totaldata <- merge(eyetrackdata[,-c(4,5)],accelfeatures[,-c(4,5)],all=T)
 totaldata <- merge(totaldata, audiofeatures, all=T)
-# TODO: Video features are wrong! generate again...
-# totaldata <- merge(totaldata, videodata[,-c(1,1002)],all=T)
+totaldata <- merge(totaldata, videodata[,-c(1,1002)],all=T)
 # Order by session and timestamp, in case we want to do time series
-# totaldata <- totaldata[ order(totaldata[,2], totaldata[,3]), ]
+totaldata <- totaldata[ order(totaldata$session, totaldata$timestamp), ]
 # head(totaldata)
 z <- gzfile(paste(processeddatadir,"completeDataset.csv.gz",sep=.Platform$file.sep),"w")
 write.csv(totaldata, z)

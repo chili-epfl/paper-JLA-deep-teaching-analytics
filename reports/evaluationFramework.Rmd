@@ -1,5 +1,6 @@
 ---
 title: "Basic framework to evaluate/compare models on the Teacher Activity Detection dataset"
+author: "Luis P. Prieto"
 date: "`r Sys.Date()`"
 output:
   rmdformats::html_clean:
@@ -26,13 +27,12 @@ opts_knit$set(width=75)
 # Loading and splitting the data
 
 ```{r}
-datafile <- '../data/processed/completeDataset-NOVIDEO.csv.gz'
+processeddatadir <- '../data/processed'
+datafile <- paste(processeddatadir,'completeDataset.csv.gz',sep=.Platform$file.sep)
 fulldata <- read.csv(gzfile(datafile))
 
-fulldata <- fulldata[ order(fulldata[,3], fulldata[,4]), ]
-head(fulldata[,1:6])
-table(fulldata$session, fulldata$Activity.win, useNA = "always")
-table(fulldata$session, fulldata$Social.win, useNA = "always")
+#table(fulldata$session, fulldata$Activity.win, useNA = "always")
+#table(fulldata$session, fulldata$Social.win, useNA = "always")
 
 # We only look for predicting 4 states of activity and 3 of social, the rest (incl.NA) we bunch in 'Other'
 fulldata$Activity.clean <- ifelse(is.na(as.character(fulldata$Activity.win)) | 
@@ -44,8 +44,11 @@ fulldata$Activity.clean <- ifelse(is.na(as.character(fulldata$Activity.win)) |
 fulldata$Social.clean <- ifelse(is.na(as.character(fulldata$Social.win)),
                                   'Other',as.character(fulldata$Social.win))
 
-names(fulldata)[6562:6563] <- c('Activity','Social')
-fulldata <- fulldata[,-c(1,2,5,6)]
+#table(fulldata$session, fulldata$Activity.clean, useNA = "always")
+#table(fulldata$session, fulldata$Social.clean, useNA = "always")
+
+names(fulldata)[7562:7563] <- c('Activity','Social')
+fulldata <- fulldata[,-c(1,4,5,6)]
 fulldata$Activity <- factor(fulldata$Activity)
 fulldata$Social <- factor(fulldata$Social)
 ```
@@ -57,47 +60,49 @@ fulldata$Social <- factor(fulldata$Social)
 ```{r}
 
 # We build the clean datasets to train models
-train <- fulldata[fulldata$session=='case2-day3-session1-teacher2' | fulldata$session=='case1-day1-session1-teacher1',]
-test <- fulldata[fulldata$session!='case2-day3-session1-teacher2' & fulldata$session!='case1-day1-session1-teacher1',]
+test <- fulldata[fulldata$session=='case2-day3-session1-teacher2' | fulldata$session=='case1-day1-session1-teacher1',]
+train <- fulldata[fulldata$session!='case2-day3-session1-teacher2' & fulldata$session!='case1-day1-session1-teacher1',]
+
+z <- gzfile(paste(processeddatadir,"train.csv.gz",sep=.Platform$file.sep),"w")
+write.csv(train, z)
+close(z)
+z <- gzfile(paste(processeddatadir,"test.csv.gz",sep=.Platform$file.sep),"w")
+write.csv(test, z)
+close(z)
+
 ```
 
 # A basic benchmark: Random Forest
 
-Since RF performed quite well in most cases for our LAK paper dataset, let's try it on the whole dataset and see what comes out, as a basis for predictions
+Since RF performed quite well in most cases for our LAK paper dataset, let's try it on the whole dataset and see what comes out, as a baseline for modelling
 
 ## Teacher activity
 
 ```{r}
-library(caret)
+library(randomForest)
+library(AUC)
 # Setup the seeds and training
 set.seed(123)
-seeds <- vector(mode = "list", length = 51)
-for(i in 1:50) seeds[[i]] <- sample.int(1000, 22)
-seeds[[51]] <- sample.int(1000, 1)
-ctrl <- trainControl(method = "repeatedcv",
-                     repeats = 5,
-                     seeds = seeds)
-set.seed(1)
-fitA <- train(Activity ~ ., data=train[,-c(1,2,6559)], 
-             method="rf", ntree=2000, trControl=ctrl,
-             prox=TRUE, allowParallel=TRUE)
+fitA <- randomForest(Activity ~ ., data=train[complete.cases(train[1:7557]),-c(1,2,7559)], 
+             ntree=4000, importance=TRUE)
 summary(fitA)
-test$Activity.pred = predict(fitA, test, "raw")
+test$Activity.pred = predict(fitA, test)
 confusionMatrix(test$Activity.pred, test$Activity)
-varImp(fitA, scale=FALSE)
-
+varImpPlot(fitA, scale=FALSE)
+auc(roc(test$Activity.pred, test$Activity))
 ```
 
 ## Social plane
 
 ```{r}
 set.seed(1)
-fitS <- train(Social ~ ., data=train[,-c(1,2,6558)], 
-             method="rf", ntree=2000, trControl=ctrl,
-             prox=TRUE, allowParallel=TRUE)
+fitS <- randomForest(Social ~ ., data=train[complete.cases(train[1:7557]),-c(1,2,7558)], 
+             ntree=4000, importance=TRUE)
 summary(fitS)
-test$Activity.pred = predict(fitS, test, "raw")
-confusionMatrix(test$Activity.pred, test$Activity)
-varImp(fitS, scale=FALSE)
-
+test$Social.pred = predict(fitS, test)
+confusionMatrix(test$Social.pred, test$Social)
+varImpPlot(fitS, scale=FALSE)
+auc(roc(test$Social.pred, test$Social))
 ```
+
+# (Add your models here...)
