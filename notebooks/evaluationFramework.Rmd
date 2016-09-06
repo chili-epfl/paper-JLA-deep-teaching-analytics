@@ -66,13 +66,14 @@ fulldata$Social <- factor(fulldata$Social)
 test <- fulldata[fulldata$session=='case2-day3-session1-teacher2' | fulldata$session=='case1-day1-session1-teacher1',]
 train <- fulldata[fulldata$session!='case2-day3-session1-teacher2' & fulldata$session!='case1-day1-session1-teacher1',]
 
-z <- gzfile(paste(processeddatadir,"train.csv.gz",sep=.Platform$file.sep),"w")
-write.csv(train, z)
-close(z)
-z <- gzfile(paste(processeddatadir,"test.csv.gz",sep=.Platform$file.sep),"w")
-write.csv(test, z)
-close(z)
-
+# z <- gzfile(paste(processeddatadir,"train.csv.gz",sep=.Platform$file.sep),"w")
+# write.csv(train, z)
+# close(z)
+# z <- gzfile(paste(processeddatadir,"test.csv.gz",sep=.Platform$file.sep),"w")
+# write.csv(test, z)
+# close(z)
+rm(fulldata)
+gc()
 ```
 
 # Dataset overview
@@ -99,6 +100,7 @@ Since RF performed quite well in most cases for our LAK paper dataset, let's try
 ```{r}
 library(randomForest)
 library(AUC)
+library(caret)
 # Setup the seeds and training
 set.seed(123)
 fitA <- randomForest(Activity ~ ., data=train[complete.cases(train[1:7557]),-c(1,2,7559)], 
