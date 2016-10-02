@@ -9,3 +9,5 @@ output:
 ---
 
 TODO: Update styles in the JLA template so that they actually match the JLA guidelines! see http://rmarkdown.rstudio.com/articles_docx.html and http://stackoverflow.com/questions/29440007/changing-word-template-for-knitr-in-rmarkdown
+
+For now, we keep the draft/outline at https://docs.google.com/document/d/1AwYxjs32ZYm0LT5TaBrIyYEgV9Sy5exQ3I466j2Iwzo/edit
