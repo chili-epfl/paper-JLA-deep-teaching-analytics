@@ -3,7 +3,7 @@
 #
 # Assumptions:
 # 0. The working directory is that where this R file lives
-# 1. The original data files have been copied into the data/raw/caseX folder,
+# 1. The original data files have been copied into the data/raw/ folder,
 #    with names like (case1-day1-session2-teacher1)-kindofdata.extension
 #    (case1-day1-session2-teacher1) = sessionid
 # 2. Will put the cleaner data files in the data/interim folder
