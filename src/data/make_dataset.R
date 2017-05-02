@@ -149,16 +149,21 @@ close(z)
 
 # video data (extract the desired frames from it, and tag them with the timestamp and the target values?
 # note: ensure that the directory does not exist before running this!!!
-dir.create(paste(interimdatadir,"videoframes",sep=.Platform$file.sep))
+framesDir <- paste(interimdatadir,"videoframes",sep=.Platform$file.sep)
+dir.create(framesDir)
 source('extractFrameFromVideo.R')
 for(i in 1:nrow(window.times)){
     sample <- window.times[i,]
     extractFrameFromVideo(sample$timestamp, sample$timestamp.orig, sample$session, rawdatadir, paste(interimdatadir,"videoframes",sep=.Platform$file.sep))
 }
-# [MANUAL] Run through pre-trained visual neural network models, see https://github.com/kidzik/deep-features
-# [MANUAL] Put the output.csv file into a videofeatures-lastlayer.csv.zip file in the data/interim dir
+# note: ensure the VGG feature extraction scripts (and models) are downloaded somewhere, see https://github.com/kidzik/deep-features
+source('extractVideoFeatures.R')
+videofeaturesfile <- extractVideoFeatures(outputzipFile = paste(interimdatadir,"videofeatures-lastlayer.csv.zip", sep=.Platform$file.sep),
+                                          imageDir = framesDir,
+                                          featurescriptDir = "../../../deep-features")
+#videofeaturesfile <- paste(interimdatadir,"videofeatures-lastlayer.csv.zip", sep=.Platform$file.sep)
+
 # We read the resulting zipped csv file
-videofeaturesfile <- paste(interimdatadir,"videofeatures-lastlayer.csv.zip", sep=.Platform$file.sep)
 videodata <- read.csv(unz(description = videofeaturesfile, filename = "output.csv"), stringsAsFactors = F, header = F)
 videodata$filename <- basename(videodata[,1])
 videodata$timestamp <- gsub(".*\\__(.*)\\..*", "\\1", videodata$filename)
