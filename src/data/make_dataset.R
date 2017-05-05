@@ -124,6 +124,9 @@ for (i in 1:nrow(sessions)){
 z <- gzfile(paste(interimdatadir,"accelDataRaw.csv.gz",sep=.Platform$file.sep),"w")
 write.csv(accelData, z)
 close(z)
+#zz=gzfile(paste(interimdatadir,"accelDataRaw.csv.gz",sep=.Platform$file.sep),'rt')   
+#accelData=read.csv(zz,header=T)[,2:9]
+
 
 source('getWindowTimes.R')
 # To extract audio/video/eyetrack features, we need a window length
@@ -146,6 +149,8 @@ window.times$Social.win <- unlist(v2)
 z <- gzfile(paste(interimdatadir,"windowTimes.csv.gz",sep=.Platform$file.sep),"w")
 write.csv(window.times, z)
 close(z)
+#zz=gzfile(paste(interimdatadir,"windowTimes.csv.gz",sep=.Platform$file.sep),'rt')   
+#window.times=read.csv(zz,header=T)[,2:8]
 
 # video data (extract the desired frames from it, and tag them with the timestamp and the target values?
 # note: ensure that the directory does not exist before running this!!!
@@ -157,19 +162,27 @@ for(i in 1:nrow(window.times)){
     extractFrameFromVideo(sample$timestamp, sample$timestamp.orig, sample$session, rawdatadir, paste(interimdatadir,"videoframes",sep=.Platform$file.sep))
 }
 # note: ensure the VGG feature extraction scripts (and models) are downloaded somewhere, see https://github.com/kidzik/deep-features
+# TODO: Does not work automatically! ===================================
+# go to the function code and execute in a terminal the commands specified ther
 source('extractVideoFeatures.R')
-videofeaturesfile <- extractVideoFeatures(outputzipFile = paste(interimdatadir,"videofeatures-lastlayer.csv.zip", sep=.Platform$file.sep),
-                                          imageDir = framesDir,
-                                          featurescriptDir = "../../../deep-features")
-#videofeaturesfile <- paste(interimdatadir,"videofeatures-lastlayer.csv.zip", sep=.Platform$file.sep)
+#videofeaturesfile <- extractVideoFeatures(outputzipFile = paste(interimdatadir,"videofeatures-lastlayer.csv.zip", sep=.Platform$file.sep),
+#                                          imageDir = framesDir,
+#                                          featurescriptDir = "../../../deep-features")
+videofeaturesfile <- paste(interimdatadir,"videofeatures-lastlayer.csv.zip", sep=.Platform$file.sep)
 
 # We read the resulting zipped csv file
-videodata <- read.csv(unz(description = videofeaturesfile, filename = "output.csv"), stringsAsFactors = F, header = F)
+videodata <- read.csv(unz(description = videofeaturesfile, filename = "../../../deep-features/output.csv"), stringsAsFactors = F, header = F)
+#If data was split in multiple files
+#videodata2 <- read.csv(unz(description = videofeaturesfile, filename = "../../../deep-features/output2.csv"), stringsAsFactors = F, header = F)
+#videodata <- rbind(videodata,videodata2)
 videodata$filename <- basename(videodata[,1])
 videodata$timestamp <- gsub(".*\\__(.*)\\..*", "\\1", videodata$filename)
 videodata$session <- sub("__.*", "", videodata$filename)
 names(videodata)[[1]] <- 'full.path'
 names(videodata)[2:1001] <- paste("V",1:1000,sep="")
+#========================================================================
+
+
 
 # audio data (create the snippets of the desired length, and tag them with the mid-snippet timestamp?)
 interimAudioDir <- paste(interimdatadir,"audiosnippets",sep=.Platform$file.sep)

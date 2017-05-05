@@ -10,7 +10,8 @@ https://github.com/floydhub/dl-docker : Docker image for easy install of softwar
 
 https://github.com/kidzik/deep-features : To extract video features from an image using a CNN
 
-http://audeering.com/technology/opensmile/#download : openSMILE, for audio feature extraction
+http://audeering.com/technology/opensmile/#download : openSMILE 2.1.0, for audio feature extraction
+... including the models from http://www.audeering.com/research-and-open-source/files/emotion-models-0.1.0.zip
 
 
 Project Organization

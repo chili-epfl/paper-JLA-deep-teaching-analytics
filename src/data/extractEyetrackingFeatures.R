@@ -14,6 +14,7 @@ extractEyetrackingFeatures <- function(sessions, datadir, window=10000, slide=50
 
         # We load the raw events export
         filename = paste(datadir,"/",session,"-",suffix.et.raw,".txt", sep="")
+        print(filename)
         filedata <- read.csv(filename,as.is=T,comment.char="#")
 
         # From all the data, we only need timestamp, pupil diameter (L,R, in mm)
