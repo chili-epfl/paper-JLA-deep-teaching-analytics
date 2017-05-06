@@ -1,0 +1,557 @@
+---
+title: "Deep Multimodal Teaching Analytics paper -- Evaluation Harness"
+abstract: "This template shows the different kinds of performance evaluations at different levels that we want to do on the models we propose for the paper. This includes attempting to do generalistic models (that work for all teachers) and personalized ones (that work with just one teacher)."
+output:
+  html_document: default
+  html_notebook: default
+---
+
+
+```{r, message=FALSE, echo=FALSE, error=FALSE}
+## Global options
+knitr::opts_chunk$set(echo=TRUE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE)
+knitr::opts_knit$set(width=75)
+```
+
+# How to use it
+
+Just make a copy of this file, insert your FEATURE SELECTION and your MODEL TRAINING where comments mark it so, and run/knit the whole document!
+
+
+# Loading the data
+
+```{r}
+library("tidyverse")
+library(randomForest)
+library(AUC)
+library(caret)
+library(e1071)
+
+
+
+processeddatadir <- '../data/processed'
+datafile <- paste(processeddatadir,'completeDataset.csv',sep=.Platform$file.sep)
+gzdatafile <- paste(processeddatadir,'completeDataset.csv.gz',sep=.Platform$file.sep)
+fulldata <- data.frame()
+if(file.exists(datafile)){
+  fulldata <- read.csv(datafile)
+}else if(file.exists(gzdatafile)){
+  fulldata <- read.csv(gzfile(datafile))  
+}else{
+  stop("Data not available in the data/processed folder")
+}
+
+
+#table(fulldata$session, fulldata$Activity.win, useNA = "always")
+#table(fulldata$session, fulldata$Social.win, useNA = "always")
+
+# We only look for predicting 4 states of activity and 3 of social, the rest (incl.NA) we bunch in 'Other'
+fulldata$Activity.clean <- ifelse(is.na(as.character(fulldata$Activity.win)) | 
+                                      as.character(fulldata$Activity.win)=='OFF' |
+                                      as.character(fulldata$Activity.win)=='TDT' |
+                                      as.character(fulldata$Activity.win)=='TEC',
+                                  'Other',as.character(fulldata$Activity.win))
+
+fulldata$Social.clean <- ifelse(is.na(as.character(fulldata$Social.win)),
+                                  'Other',as.character(fulldata$Social.win))
+
+#table(fulldata$session, fulldata$Activity.clean, useNA = "always")
+#table(fulldata$session, fulldata$Social.clean, useNA = "always")
+
+names(fulldata)[7562:7563] <- c('Activity','Social')
+fulldata <- fulldata[,-c(1,4,5,6)]
+fulldata$Activity <- factor(fulldata$Activity)
+fulldata$Social <- factor(fulldata$Social)
+
+
+```
+
+
+# Dataset overview
+
+Both the training and testing datasets have the following general structure:
+
+* ''Rows'' represent the features of each 10s window (overlapping/sliding 5s), ordered by `session` ID and its `timestamp` (in ms)
+
+* ''Columns'' are the features themselves (they have more-or-less-cryptic column names), up to 7559 of them!
+    * [,1]: ''session id''
+    * [,2]: ''timestamp'' within the session (in ms)
+    * [,3:12]: ''eyetracking'' features (mean/sd pupil diameter, nr. of long fixations, avg. saccade speed, fixation duration, fixation dispersion, saccade duration, saccade amplitude, saccade length, saccade velocity)
+    * [,13:152]: ''accelerometer'' features, including X, Y, Z (mean, sd, max, min, median, and 30 FFT coefficients of each of them) and jerk (mean, sd, max, min, median, and 30 FFT coefficients of each of it)
+    * [,153:6557]: ''audio'' features extracted from an audio snippet of the 10s window, using openSMILE. Includes features about whether there is someone speaking (153:163), emotion recognition models (164:184), and brute-force audio spectrum features and characteristics used in various audio recognition challenges/tasks (185:6557)
+    * [,6558:7557]: ''video'' features extracted from an image taken in the middle of the window (the 1000 values of the last layer when passing the immage through a VGG pre-trained model)
+    * [,7558:7559]: ''Activity,Social'' labels we want to predict
+    
+
+```{r}
+########## FEATURE SELECTION/TRANSFORMATION ################################################
+# Perform here other transformations (e.g., dimensionality reduction via PCA, feature selection...)
+
+# For exampleTake only the eyetracking part of the dataset
+data <- fulldata[,c(1:12,7558:7559)]
+# data <- fulldata # For full dataset
+
+```
+
+
+# General models (multi-teacher)
+
+How good are we at building a model that is able to detect the labels for multiple teachers?
+
+## Leave one session out
+
+```{r}
+
+sessions <- unique(data$session)
+
+# Models and performances
+perfA <- list(label = character(), models = list(), cms = list(), aucs = numeric())
+for(i in 1:length(sessions)){
+  s <- sessions[i]
+  #print(s)
+  test <- data %>% filter(session == s)
+  train <- data %>% filter(session != s)
+  
+  # Setup the seeds and training
+  set.seed(123)
+  input <- train %>% select(-session, -timestamp, -Social) %>% filter(complete.cases(.))
+  
+  ########## TRAINING CODE ################################################
+
+  fitA <- randomForest(Activity ~ .,
+                       data=input,
+                       importance=TRUE)
+  
+  #########################################################################
+  test$Activity.pred = predict(fitA, test)
+  cmA <- confusionMatrix(test$Activity.pred, test$Activity)
+  #print(cmA)
+  #varImpPlot(fitA, scale=FALSE)
+  aucA <- NA
+  aucA <- tryCatch(auc(roc(test$Activity.pred, test$Activity)), 
+                   error=function(e){
+                     print(paste("could not calculate AUC for",as.character(s)))
+                     return(NA)
+                     })  
+  #print(aucA)
+  perfA$label[[i]] <- as.character(s)
+  perfA$models[[i]] <- fitA
+  perfA$cms[[i]] <- cmA
+  perfA$aucs[[i]] <- aucA
+  
+}
+print("Predicting Activity...")
+print(paste("Avg AUC",mean(perfA$aucs)))
+qplot(perfA$aucs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+kps <- sapply(perfA$cms, function(x){x$overall['Kappa']})
+print(paste("Avg Kappa",mean(kps)))
+qplot(kps, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+accs <- sapply(perfA$cms, function(x){x$overall['Accuracy']})
+print(paste("Avg Accuracy",mean(accs)))
+qplot(accs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+
+
+# Models and performances
+perfS <- list(label = character(), models = list(), cms = list(), aucs = numeric())
+for(i in 1:length(sessions)){
+  s <- sessions[i]
+  #print(s)
+  test <- data %>% filter(session == s)
+  train <- data %>% filter(session != s)
+  
+  # Setup the seeds and training
+  set.seed(456)
+  input <- train %>% select(-session, -timestamp, -Activity) %>% filter(complete.cases(.))
+  
+  ########## TRAINING CODE ################################################
+
+  fitS <- randomForest(Social ~ .,
+                       data=input,
+                       importance=TRUE)
+
+  ########################################################################
+  test$Social.pred = predict(fitS, test)
+  cmS <- confusionMatrix(test$Social.pred, test$Social)
+  #print(cmS)
+  #varImpPlot(fitS, scale=FALSE)
+  aucS <- NA
+  aucS <- tryCatch(auc(roc(test$Social.pred, test$Social)), 
+                   error=function(e){
+                     print(paste("could not calculate AUC for",as.character(s)))
+                     return(NA)
+                     })
+  #print(aucS)
+  perfS$label[[i]] <- as.character(s)
+  perfS$models[[i]] <- fitS
+  perfS$cms[[i]] <- cmS
+  perfS$aucs[[i]] <- aucS
+  
+}
+print("Predicting Social")
+print(paste("Avg AUC",mean(perfS$aucs, na.rm = T)))
+qplot(perfS$aucs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+kps <- sapply(perfS$cms, function(x){x$overall['Kappa']})
+print(paste("Avg Kappa",mean(kps)))
+qplot(kps, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+accs <- sapply(perfS$cms, function(x){x$overall['Accuracy']})
+print(paste("Avg Accuracy",mean(accs)))
+qplot(accs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+
+
+
+```
+
+
+## Leave one teacher out (train on one, test on the other)
+
+
+
+```{r}
+
+teachers <- c("teacher1","teacher2")
+data <- data %>% mutate(teacher = ifelse(grepl("teacher1",session,fixed=T),"teacher1","teacher2"))
+# Models and performances
+perfA2 <- list(label = character(), models = list(), cms = list(), aucs = numeric())
+for(i in 1:length(teachers)){
+  s <- teachers[i]
+  #print(s)
+  test <- data %>% filter(teacher == s)
+  train <- data %>% filter(teacher != s)
+  
+  # Setup the seeds and training
+  set.seed(123)
+  input <- train %>% select(-session, -timestamp, -Social, -teacher) %>% filter(complete.cases(.))
+  
+  ########## TRAINING CODE ################################################
+
+  fitA <- randomForest(Activity ~ .,
+                       data=input,
+                       importance=TRUE)
+  
+  #########################################################################
+  test$Activity.pred = predict(fitA, test)
+  cmA <- confusionMatrix(test$Activity.pred, test$Activity)
+  #print(cmA)
+  #varImpPlot(fitA, scale=FALSE)
+  aucA <- NA
+  aucA <- tryCatch(auc(roc(test$Activity.pred, test$Activity)), 
+                   error=function(e){
+                     print(paste("could not calculate AUC for",as.character(s)))
+                     return(NA)
+                     })  
+  #print(aucA)
+  perfA2$label[[i]] <- as.character(s)
+  perfA2$models[[i]] <- fitA
+  perfA2$cms[[i]] <- cmA
+  perfA2$aucs[[i]] <- aucA
+  
+}
+print("Predicting Activity...")
+print(paste("Avg AUC",mean(perfA2$aucs)))
+qplot(perfA2$aucs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+kps <- sapply(perfA2$cms, function(x){x$overall['Kappa']})
+print(paste("Avg Kappa",mean(kps)))
+qplot(kps, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+accs <- sapply(perfA2$cms, function(x){x$overall['Accuracy']})
+print(paste("Avg Accuracy",mean(accs)))
+qplot(accs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+
+
+# Models and performances
+perfS2 <- list(label = character(), models = list(), cms = list(), aucs = numeric())
+for(i in 1:length(teachers)){
+  s <- teachers[i]
+  #print(s)
+  test <- data %>% filter(teacher == s)
+  train <- data %>% filter(teacher != s)
+  
+  # Setup the seeds and training
+  set.seed(456)
+  input <- train %>% select(-session, -timestamp, -Activity, -teacher) %>% filter(complete.cases(.))
+  
+  ########## TRAINING CODE ################################################
+
+  fitS <- randomForest(Social ~ .,
+                       data=input,
+                       importance=TRUE)
+
+  ########################################################################
+  test$Social.pred = predict(fitS, test)
+  cmS <- confusionMatrix(test$Social.pred, test$Social)
+  #print(cmS)
+  #varImpPlot(fitS, scale=FALSE)
+  aucS <- NA
+  aucS <- tryCatch(auc(roc(test$Social.pred, test$Social)), 
+                   error=function(e){
+                     print(paste("could not calculate AUC for",as.character(s)))
+                     return(NA)
+                     })
+  #print(aucS)
+  perfS2$label[[i]] <- as.character(s)
+  perfS2$models[[i]] <- fitS
+  perfS2$cms[[i]] <- cmS
+  perfS2$aucs[[i]] <- aucS
+  
+}
+print("Predicting Social")
+print(paste("Avg AUC",mean(perfS2$aucs, na.rm = T)))
+qplot(perfS2$aucs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+kps <- sapply(perfS2$cms, function(x){x$overall['Kappa']})
+print(paste("Avg Kappa",mean(kps)))
+qplot(kps, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+accs <- sapply(perfS2$cms, function(x){x$overall['Accuracy']})
+print(paste("Avg Accuracy",mean(accs)))
+qplot(accs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+
+
+
+```
+
+
+
+
+
+# Personalized models (trained and tested with data from ONE teacher)
+
+## Leave one session out
+
+
+```{r}
+
+# sessions and teachers already exist
+
+# Models and performances
+perfA3 <- list(label = character(), models = list(), cms = list(), aucs = numeric())
+counter <- 1
+for(j in 1:length(teachers)){
+  t <- teachers[j]
+  partdata <- data %>% filter(teacher==t)
+  # We train/test on the data for one teacher
+  partsessions <- unique(partdata$session)
+  for(i in 1:length(partsessions)){
+    s <- partsessions[i]
+    #print(s)
+    test <- partdata %>% filter(session == s)
+    train <- partdata %>% filter(session != s)
+    
+    # Setup the seeds and training
+    set.seed(123)
+    input <- train %>% select(-session, -timestamp, -Social, -teacher) %>% filter(complete.cases(.))
+    
+    ########## TRAINING CODE ################################################
+  
+    fitA <- randomForest(Activity ~ .,
+                         data=input,
+                         importance=TRUE)
+    
+    #########################################################################
+    test$Activity.pred = predict(fitA, test)
+    cmA <- confusionMatrix(test$Activity.pred, test$Activity)
+    #print(cmA)
+    #varImpPlot(fitA, scale=FALSE)
+    aucA <- NA
+    aucA <- tryCatch(auc(roc(test$Activity.pred, test$Activity)), 
+                     error=function(e){
+                       print(paste("could not calculate AUC for",as.character(s)))
+                       return(NA)
+                       })  
+    #print(aucA)
+    perfA3$label[[counter]] <- as.character(s)
+    perfA3$models[[counter]] <- fitA
+    perfA3$cms[[counter]] <- cmA
+    perfA3$aucs[[counter]] <- aucA
+    counter <- counter+1
+  }
+  
+}
+
+print("Predicting Activity...")
+print(paste("Avg AUC",mean(perfA3$aucs)))
+qplot(perfA3$aucs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+kps <- sapply(perfA3$cms, function(x){x$overall['Kappa']})
+print(paste("Avg Kappa",mean(kps)))
+qplot(kps, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+accs <- sapply(perfA3$cms, function(x){x$overall['Accuracy']})
+print(paste("Avg Accuracy",mean(accs)))
+qplot(accs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+
+
+# Models and performances
+perfS3 <- list(label = character(), models = list(), cms = list(), aucs = numeric())
+counter <- 1
+for(j in 1:length(teachers)){
+  t <- teachers[j]
+  partdata <- data %>% filter(teacher==t)
+  # We train/test on the data for one teacher
+  partsessions <- unique(partdata$session)
+  for(i in 1:length(partsessions)){
+    s <- partsessions[i]
+    #print(s)
+    test <- partdata %>% filter(session == s)
+    train <- partdata %>% filter(session != s)
+
+  
+    # Setup the seeds and training
+    set.seed(456)
+    input <- train %>% select(-session, -timestamp, -Activity, -teacher) %>% filter(complete.cases(.))
+    
+    ########## TRAINING CODE ################################################
+  
+    fitS <- randomForest(Social ~ .,
+                         data=input,
+                         importance=TRUE)
+  
+    ########################################################################
+    test$Social.pred = predict(fitS, test)
+    cmS <- confusionMatrix(test$Social.pred, test$Social)
+    #print(cmS)
+    #varImpPlot(fitS, scale=FALSE)
+    aucS <- NA
+    aucS <- tryCatch(auc(roc(test$Social.pred, test$Social)), 
+                     error=function(e){
+                       print(paste("could not calculate AUC for",as.character(s)))
+                       return(NA)
+                       })
+    #print(aucS)
+    perfS3$label[[counter]] <- as.character(s)
+    perfS3$models[[counter]] <- fitS
+    perfS3$cms[[counter]] <- cmS
+    perfS3$aucs[[counter]] <- aucS
+    counter <- counter+1
+
+  }
+}
+
+print("Predicting Social")
+print(paste("Avg AUC",mean(perfS3$aucs, na.rm = T)))
+qplot(perfS3$aucs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+kps <- sapply(perfS3$cms, function(x){x$overall['Kappa']})
+print(paste("Avg Kappa",mean(kps)))
+qplot(kps, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+accs <- sapply(perfS3$cms, function(x){x$overall['Accuracy']})
+print(paste("Avg Accuracy",mean(accs)))
+qplot(accs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+
+```
+
+
+## Leave one situation out (only for teacher 2)
+
+
+
+```{r}
+
+# sessions and teachers already exist
+data2 <- data %>% filter(teacher == "teacher2")
+data2 <- data2 %>% mutate(situation = ifelse(grepl("day1",session,fixed=T),"day1",
+                                             ifelse(grepl("day2",session,fixed=T),"day2",
+                                                    ifelse(grepl("day3",session,fixed=T),"day3","day4"))))
+situations <- unique(data2$situation)
+# Models and performances
+perfA4 <- list(label = character(), models = list(), cms = list(), aucs = numeric())
+counter <- 1
+
+for(i in 1:length(situations)){
+  s <- situations[i]
+  #print(s)
+  test <- data2 %>% filter(situation == s)
+  train <- data2 %>% filter(situation != s)
+  
+  # Setup the seeds and training
+  set.seed(123)
+  input <- train %>% select(-session, -timestamp, -Social, -teacher, -situation) %>% filter(complete.cases(.))
+  
+  ########## TRAINING CODE ################################################
+
+  fitA <- randomForest(Activity ~ .,
+                       data=input,
+                       importance=TRUE)
+  
+  #########################################################################
+  test$Activity.pred = predict(fitA, test)
+  cmA <- confusionMatrix(test$Activity.pred, test$Activity)
+  #print(cmA)
+  #varImpPlot(fitA, scale=FALSE)
+  aucA <- NA
+  aucA <- tryCatch(auc(roc(test$Activity.pred, test$Activity)), 
+                   error=function(e){
+                     print(paste("could not calculate AUC for",as.character(s)))
+                     return(NA)
+                     })  
+  #print(aucA)
+  perfA4$label[[counter]] <- as.character(s)
+  perfA4$models[[counter]] <- fitA
+  perfA4$cms[[counter]] <- cmA
+  perfA4$aucs[[counter]] <- aucA
+  counter <- counter+1
+}
+
+print("Predicting Activity...")
+print(paste("Avg AUC",mean(perfA4$aucs)))
+qplot(perfA4$aucs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+kps <- sapply(perfA4$cms, function(x){x$overall['Kappa']})
+print(paste("Avg Kappa",mean(kps)))
+qplot(kps, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+accs <- sapply(perfA4$cms, function(x){x$overall['Accuracy']})
+print(paste("Avg Accuracy",mean(accs)))
+qplot(accs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+
+
+# Models and performances
+perfS4 <- list(label = character(), models = list(), cms = list(), aucs = numeric())
+counter <- 1
+
+for(i in 1:length(situations)){
+  s <- situations[i]
+  #print(s)
+  test <- data2 %>% filter(situation == s)
+  train <- data2 %>% filter(situation != s)
+
+  # Setup the seeds and training
+  set.seed(456)
+  input <- train %>% select(-session, -timestamp, -Activity, -teacher, -situation) %>% filter(complete.cases(.))
+  
+  ########## TRAINING CODE ################################################
+
+  fitS <- randomForest(Social ~ .,
+                       data=input,
+                       importance=TRUE)
+
+  ########################################################################
+  test$Social.pred = predict(fitS, test)
+  cmS <- confusionMatrix(test$Social.pred, test$Social)
+  #print(cmS)
+  #varImpPlot(fitS, scale=FALSE)
+  aucS <- NA
+  aucS <- tryCatch(auc(roc(test$Social.pred, test$Social)), 
+                   error=function(e){
+                     print(paste("could not calculate AUC for",as.character(s)))
+                     return(NA)
+                     })
+  #print(aucS)
+  perfS4$label[[counter]] <- as.character(s)
+  perfS4$models[[counter]] <- fitS
+  perfS4$cms[[counter]] <- cmS
+  perfS4$aucs[[counter]] <- aucS
+  counter <- counter+1
+
+}
+
+print("Predicting Social")
+print(paste("Avg AUC",mean(perfS4$aucs, na.rm = T)))
+qplot(perfS4$aucs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+kps <- sapply(perfS4$cms, function(x){x$overall['Kappa']})
+print(paste("Avg Kappa",mean(kps)))
+qplot(kps, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+accs <- sapply(perfS4$cms, function(x){x$overall['Accuracy']})
+print(paste("Avg Accuracy",mean(accs)))
+qplot(accs, x=1, geom="boxplot")+coord_flip()+geom_jitter()
+
+```
+
