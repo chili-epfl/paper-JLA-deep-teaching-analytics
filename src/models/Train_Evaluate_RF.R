@@ -83,8 +83,8 @@ fulldata$Activity.clean <- ifelse(is.na(as.character(fulldata$Activity.win)) |
 fulldata$Social.clean <- ifelse(is.na(as.character(fulldata$Social.win)),
                                 'Other',as.character(fulldata$Social.win))
 
-table(fulldata$session, fulldata$Activity.clean, useNA = "always")
-table(fulldata$session, fulldata$Social.clean, useNA = "always")
+#table(fulldata$session, fulldata$Activity.clean, useNA = "always")
+#table(fulldata$session, fulldata$Social.clean, useNA = "always")
 
 names(fulldata)[7562:7563] <- c('Activity','Social')
 fulldata <- fulldata[,-c(1,4,5,6)]
@@ -168,4 +168,4 @@ print(auc)
 f1 <- F1_Score(y_pred = predictions, y_true = test[,target])
 print(f1)
 
-save(label, fit, cm, auc, f1, file=paste(label,".Rdata",sep=""))
+save(label, fit, cm, auc, f1, file=paste(processeddatadir,paste(label,".Rdata",sep=""), sep=.Platform$file.sep))
