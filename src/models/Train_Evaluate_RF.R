@@ -12,10 +12,14 @@ library(caret)
 library(e1071)
 library(AUC)
 
-args = commandArgs(trailingOnly=TRUE)
+args <- commandArgs(trailingOnly=FALSE)
+# Get the --file argument to get the current script location
+arg <- (args[grepl("--file=",args,fixed=T)])[1]
+fullpath <- unlist(strsplit(arg,"--file=", fixed=T))[2]
+path <- dirname(normalizePath(fullpath))
 
+args <- commandArgs(trailingOnly=TRUE)
 print(args)
-
 if(length(args)!=5){
   stop("Wrong number of arguments. Usage:\nTrain_Evaluate_RF.R <label> <target-variable> <data-sources> <train-set-sessions> <test-set-sessions>")
 }
@@ -58,7 +62,7 @@ if(length(sessiontrain)==0 | length(sessiontest)==0){
 
 
 # READING AND PREPARING THE DATA
-processeddatadir <- './'
+processeddatadir <- path
 datafile <- paste(processeddatadir,'completeDataset.csv',sep=.Platform$file.sep)
 gzdatafile <- paste(processeddatadir,'completeDataset.csv.gz',sep=.Platform$file.sep)
 fulldata <- data.frame()
@@ -93,7 +97,7 @@ fulldata$Social <- factor(fulldata$Social)
 # * [,153:6557]: ''audio'' features extracted from an audio snippet of the 10s window, using openSMILE. Includes features about whether there is someone speaking (153:163), emotion recognition models (164:184), and brute-force audio spectrum features and characteristics used in various audio recognition challenges/tasks (185:6557)
 # * [,6558:7557]: ''video'' features extracted from an image taken in the middle of the window (the 1000 values of the last layer when passing the immage through a VGG pre-trained model)
 # * [,7558:7559]: ''Activity,Social'' labels we want to predict
-names(fulldata)
+#names(fulldata)
 
 
 # SELECTING THE DATASET FEATURES (DATA SOURCES BEING TRIED)
@@ -109,7 +113,7 @@ train <- data %>% filter(session %in% sessiontrain)
 
 #######################################################
 # DO OTHER DATA TRANSFORMATIONS NEEDED, e.g. PCA, SELECT K-BEST FEATURES, etc (NORMALLY, ON THE TRAIN SET ONLY, TO BE APPLIED LATER TO THE TEST SET)
-
+print("Transforming data...")
 
 #######################################################
 
@@ -130,6 +134,7 @@ if(target=='Activity'){
 
 ######################################################
 # TRAIN THE MODEL -- SUBSTITUTE BY OTHERS AS NEEDED
+print("Training the model...")
 fit <- list()
 if(target=='Activity'){
   fit <- randomForest(Activity ~ .,
@@ -146,6 +151,7 @@ if(target=='Activity'){
 
 
 # EVALUATE THE MODEL, AND STORE IT AND THE TEST PERFORMANCE
+print("Evaluating the model...")
 predictions = predict(fit, test)
 cm <- confusionMatrix(predictions, test[,target])
 print(cm)
