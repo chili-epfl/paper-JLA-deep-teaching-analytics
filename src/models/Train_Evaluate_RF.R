@@ -11,6 +11,7 @@ library(randomForest)
 library(caret)
 library(e1071)
 library(AUC)
+library(MLmetrics)
 
 args <- commandArgs(trailingOnly=FALSE)
 # Get the --file argument to get the current script location
@@ -164,5 +165,7 @@ auc <- tryCatch(auc(roc(predictions, test[,target])),
                    return(NA)
                  })
 print(auc)
+f1 <- F1_Score(y_pred = predictions, y_true = test[,target])
+print(f1)
 
 save(label, fit, cm, auc, file=paste(label,".Rdata",sep=""))
