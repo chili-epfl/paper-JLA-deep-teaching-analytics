@@ -168,4 +168,4 @@ print(auc)
 f1 <- F1_Score(y_pred = predictions, y_true = test[,target])
 print(f1)
 
-save(label, fit, cm, auc, file=paste(label,".Rdata",sep=""))
+save(label, fit, cm, auc, f1, file=paste(label,".Rdata",sep=""))
