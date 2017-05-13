@@ -153,12 +153,14 @@ X_train = train.values[:,range(2,train.shape[1]-1)].astype(float)
 Y_train = train.values[:,(train.shape[1]-1)]
 X_test = test.values[:,range(2,test.shape[1]-1)].astype(float)
 Y_test = test.values[:,(test.shape[1]-1)]
+Y_total = data.values[:,(data.shape[1]-1)]
 print(X_train.shape, Y_train.shape, X_test.shape, Y_test.shape)
 
 #######################################################
 # DO OTHER DATA TRANSFORMATIONS NEEDED, e.g. PCA, SELECT K-BEST FEATURES, etc (NORMALLY, ON THE TRAIN SET ONLY, TO BE APPLIED LATER TO THE TEST SET)
 print("Transforming data... ")
 k = 100
+outs = len(data[target].unique())
 
 # We standardize on the basis of the training data
 scaler = StandardScaler().fit(X_train)
@@ -188,18 +190,18 @@ else:
 
 # encode class values as integers
 encoder = LabelEncoder()
-encoder.fit(Y_train)
+encoder.fit(Y_total)
 encoded_Y_train = encoder.transform(Y_train)
 # convert integers to dummy variables (i.e. one hot encoded)
 dummy_y_train = to_categorical(encoded_Y_train)
-encoder.fit(Y_test)
+#encoder.fit(Y_test)
 encoded_Y_test = encoder.transform(Y_test)
 # convert integers to dummy variables (i.e. one hot encoded)
 dummy_y_test = to_categorical(encoded_Y_test)
 
 ##################### MODEL BUILDING --- CUSTOMIZE THIS ################
 # Apply dropout regularization, it is overfitting!
-def create_deeper_dropout_decay_PCA(k):
+def create_deeper_dropout_decay_PCA(k, outs):
     # create model
     model = Sequential()
     model.add(Dropout(0.2, input_shape=(k,)))
@@ -215,7 +217,7 @@ def create_deeper_dropout_decay_PCA(k):
     model.add(Dropout(0.2))
     model.add(Dense(20, init='uniform', activation='tanh'))
     model.add(Dropout(0.2))
-    model.add(Dense(5, init='uniform', activation='sigmoid'))
+    model.add(Dense(outs, init='uniform', activation='sigmoid'))
     # Compile model, with larger learning rate and momentum, as recommended by the original paper
     sgd = SGD(lr=0.1, momentum=0.8, decay=0.0001, nesterov=False)
     model.compile(loss='categorical_crossentropy', optimizer=sgd, metrics=['accuracy'])
@@ -233,7 +235,7 @@ numpy.random.seed(seed)
 #kfold = StratifiedKFold(y=Y_train, n_folds=3, shuffle=True, random_state=seed)
 
 #model = create_baseline()
-model = create_deeper_dropout_decay_PCA(k)
+model = create_deeper_dropout_decay_PCA(k, outs)
 #print model.summary()
 #############################################################################
 
@@ -276,7 +278,11 @@ print('Confusion matrix:')
 print(cm)
 
 # AUC
-roc = roc_auc_score(dummy_y_test, Y_pred, average='macro')
+roc = NaN
+try:
+  roc = roc_auc_score(dummy_y_test, Y_pred, average='macro')
+except:
+  pass
 print('AUC score:')
 print(roc)
 
