@@ -137,7 +137,7 @@ selectKBest <- function(data, target, k){
                print(paste("could not calculate cohen d for",name))
                return(NA)
              })
-    print(m)
+    # print(m)
     df[counter,'featnames'] <- as.character(name)
     if(!is.na(m)){
       if(m$Sum[2]>0){
