@@ -240,9 +240,10 @@ model = create_deeper_dropout_decay_PCA(k)
 # To save the best model
 # serialize model to JSON
 model_json = model.to_json()
-with open(label+".model.json", "w") as json_file:
+modelfile = os.path.join(path,label+".model.json")
+with open(modelfile, "w") as json_file:
     json_file.write(model_json)
-filepath=label+".weights.hdf5"
+filepath=os.path.join(path,label+".weights.hdf5")
 # Define that the accuracy in cv is monitored, and that weights are stored in a file when max accuracy is achieved
 checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=1, save_best_only=True, mode='max')
 callbacks_list = [checkpoint]
@@ -318,4 +319,5 @@ perfdata = [
 # Later, to recover cm:
 # cm = np.array(json.loads(text))
 df = pandas.DataFrame(perfdata)
-filename = label+".perf.csv"
+filename = os.path.join(path,label+".perf.csv")
+df.to_csv(filename, index=False, encoding='utf-8')
