@@ -278,7 +278,7 @@ print('Confusion matrix:')
 print(cm)
 
 # AUC
-roc = NaN
+roc = None
 try:
   roc = roc_auc_score(dummy_y_test, Y_pred, average='macro')
 except:
