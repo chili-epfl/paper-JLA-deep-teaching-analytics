@@ -167,6 +167,20 @@ scaler = StandardScaler().fit(X_train)
 X_train_st = scaler.transform(X_train)
 X_test_st = scaler.transform(X_test)
 
+# # Removing zero variance features
+# selector = VarianceThreshold()
+# selector.fit(X_train_st)
+# X_train_nz = selector.transform(X_train_st)
+# X_test_nz = selector.transform(X_test_st)
+# idx = numpy.where(selector.variances_ > threshold)[0] # to get the indices
+# TODO: Remove highly correlated ones (according to Cohen's d?)
+## From http://lucystatistics.blogspot.com.ee/2016/03/dimension-reduction.html
+# c = df.corr().abs()
+# so1=argsort(np.array(c))
+# s = c.unstack()
+# so2 = s.order(kind="quicksort")
+
+
 if X_train.shape[1]>k:
     # Apply 100-component pca
     print("PCA with "+str(k)+" components")
@@ -179,8 +193,9 @@ if X_train.shape[1]>k:
     print sum(pca.explained_variance_ratio_)
 else:
     k=X_train.shape[1]
-    X_train_pca = X_train_st
-    X_test_pca = X_test_st
+    pca = decomposition.PCA(n_components=k)
+    X_train_pca = pca.fit_transform(X_train_st)
+    X_test_pca = pca.transform(X_test_st)
 
 #######################################################
 
