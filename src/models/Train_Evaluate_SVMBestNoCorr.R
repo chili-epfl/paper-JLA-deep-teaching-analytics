@@ -132,7 +132,13 @@ selectKBest <- function(data, target, k, threshold = 0.8){
   numericData <- data[sapply(data, is.numeric)]
   numericData <- numericData[,-which(names(numericData)=='timestamp')] # timestamp is also numeric, we do not want to include it in the calculations below
   nzv <- nearZeroVar(numericData)
-  dat2 <- numericData[, -nzv]
+  dat2 <- data.frame()
+  if(length(nzv)>0){
+    dat2 <- numericData[, -nzv]
+  }else{
+    dat2 <- numericData
+  }
+  
   print(paste("Near zero variance variables (removed):",paste(names(numericData)[nzv], collapse = " , ")))
   
   print(paste("selecting",k,"features out of",ncol(dat2)))
