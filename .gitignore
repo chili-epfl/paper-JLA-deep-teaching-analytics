@@ -73,3 +73,6 @@ target/
 /data/
 *.Rdata
 *.perf.csv
+/src/models/*.hdf5
+/src/models/*.json
+
