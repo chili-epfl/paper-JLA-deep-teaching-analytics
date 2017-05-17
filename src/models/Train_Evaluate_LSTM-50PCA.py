@@ -313,7 +313,7 @@ X_test_pca_reshaped, dummy_y_test_reshaped = slice_timeseries(X_test_pca, dummy_
 
 # Fit the model
 history = model.fit(X_train_pca_reshaped, dummy_y_train_reshaped, validation_data=(X_test_pca_reshaped,dummy_y_test_reshaped),
-                    nb_epoch=1, batch_size=10, verbose=0, callbacks=callbacks_list)
+                    nb_epoch=500, batch_size=10, verbose=0, callbacks=callbacks_list)
 #results = cross_val_score(pipeline, X_train, dummy_y_train, cv=kfold)
 #print("Standardized data Acc (in CV training data): %.2f%% (%.2f%%)" % (results.mean()*100, results.std()*100))
 # evaluate the model
