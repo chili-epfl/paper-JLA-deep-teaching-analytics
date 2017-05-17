@@ -3,6 +3,17 @@ paper-JLA-deep-teaching-analytics
 
 Application of deep learning models to the automated extraction of orchestration graphs from multimodal data (teaching analytics)
 
+Dependencies
+------------
+
+https://github.com/floydhub/dl-docker : Docker image for easy install of software to run the CNNs, jupyter notebooks, etc.
+
+https://github.com/kidzik/deep-features : To extract video features from an image using a CNN
+
+http://audeering.com/technology/opensmile/#download : openSMILE 2.1.0, for audio feature extraction
+... including the models from http://www.audeering.com/research-and-open-source/files/emotion-models-0.1.0.zip
+
+
 Project Organization
 ------------
 

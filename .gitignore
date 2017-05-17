@@ -71,5 +71,9 @@ target/
 
 # exclude data from source control by default
 /data/
+*.Rdata
+*.perf.csv
+/src/models/*.hdf5
+/src/models/*.json
 
 .Rproj.user

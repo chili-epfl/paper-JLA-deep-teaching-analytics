@@ -56,9 +56,9 @@ fulldata$Activity <- factor(fulldata$Activity)
 fulldata$Social <- factor(fulldata$Social)
 ```
 
-## Basic split
+## A Basic split
 
-... one session per teacher, with variety of states of Activity and Social
+... we leave out, as test set, one session per teacher, with variety of states of Activity and Social. This will give us a (quite optimistic) estimate of how good a "general model" (that works across subjects) can be on data from a teacher it has seen, in a classroom situation that it has seen (as there are multiple sessions for each kind of classroom situation), but with different students
 
 ```{r}
 
@@ -75,6 +75,13 @@ train <- fulldata[fulldata$session!='case2-day3-session1-teacher2' & fulldata$se
 rm(fulldata)
 gc()
 ```
+
+## Other splits are possible! (TODO: create a test harness that tries all of these on our best models)
+
+* General model -- Leave one teacher out: train on data for one teacher, test on data for another teacher (we only have two teachers!)
+* General model -- Leave one situation out: train on data for two teachers, but leave all the sessions for one kind of situation out
+* Personalized model -- Leave one session out: train on data for one teacher, but leave one session out
+* Personalized model -- Leave one situation out: train on data for one teacher, but leave one kind of situation out (can only be done with teacher 2)
 
 # Dataset overview
 
@@ -93,7 +100,7 @@ Both the training and testing datasets have the following general structure:
 
 # A basic benchmark: Random Forest
 
-Since RF performed quite well in most cases for our LAK paper dataset, let's try it on the whole dataset and see what comes out, as a baseline for modelling
+Since RF performed quite well in most cases for our LAK paper dataset, let's try it on the whole dataset and see what comes out, as a baseline for modelling accuracy. In principle, we are using AUC (area under the ROC curve) as the main metric for model comparison
 
 ## Teacher activity
 
