@@ -7,8 +7,8 @@
 # This prefix serves to distinguish the labels of, say, the kind of model we train/test here, e.g., Random Forest, LSTMs5layers, etc.
 # Change it each time you generate a new file like this, to keep things findable! 
 # And do not put "_" in the middle of the prefix (we use _ as separators in the visualization scripts)
-command <- "Train_Evaluate_SVMBestNoCorr.R"
-LABELPREFIX <- "SVMBestNoCorr_"
+command <- "Train_Evaluate_7MLP-LB9.py"
+LABELPREFIX <- "7MLP-LB9_"
 # LABELPREFIX <- "LSTM-5L_"
 ###############################################
 
