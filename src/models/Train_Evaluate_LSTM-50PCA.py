@@ -285,7 +285,7 @@ numpy.random.seed(seed)
 
 #model = create_baseline()
 #model = create_deeper_dropout_decay_PCA(k, outs)
-model = create_LSTM(input_dim = k, output_dim = outs, lstm_layers = 1, hidden = 5)
+model = create_LSTM(input_dim = k, output_dim = outs, lstm_layers = 2, hidden = 32)
 #print model.summary()
 #############################################################################
 
@@ -304,16 +304,16 @@ def slice_timeseries(X,Y,length=32):
     # TODO: consider more randomized slicing
     n = int(math.floor(X.shape[0] / length))
     maxt = n * length
-    X = X[0:maxt,:].reshape((n, length, X.shape[1])) # TODO: haven't checked if it's reshaping right way but the dimention is ok
+    X = X[0:maxt,:].reshape((n, length, X.shape[1]))
     Y = Y[0:maxt,:].reshape((n, length, Y.shape[1]))
     return X,Y
 
-X_train_pca_reshaped, dummy_y_train_reshaped = slice_timeseries(X_train_pca, dummy_y_train, length=32)
-X_test_pca_reshaped, dummy_y_test_reshaped = slice_timeseries(X_test_pca, dummy_y_test, length=64)
+X_train_pca_reshaped, dummy_y_train_reshaped = slice_timeseries(X_train_pca, dummy_y_train, length=16)
+X_test_pca_reshaped, dummy_y_test_reshaped = slice_timeseries(X_test_pca, dummy_y_test, length=32)
 
 # Fit the model
 history = model.fit(X_train_pca_reshaped, dummy_y_train_reshaped, validation_data=(X_test_pca_reshaped,dummy_y_test_reshaped),
-                    nb_epoch=500, batch_size=10, verbose=0, callbacks=callbacks_list)
+                    nb_epoch=2000, batch_size=16, verbose=0, callbacks=callbacks_list)
 #results = cross_val_score(pipeline, X_train, dummy_y_train, cv=kfold)
 #print("Standardized data Acc (in CV training data): %.2f%% (%.2f%%)" % (results.mean()*100, results.std()*100))
 # evaluate the model
