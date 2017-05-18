@@ -11,6 +11,9 @@ output:
 ```{r knitr_init, echo=FALSE, cache=FALSE}
 library(knitr)
 library(rmdformats)
+```{r}
+
+```
 
 ## Global options
 options(max.print="75")
@@ -108,7 +111,7 @@ library(caret)
 # Setup the seeds and training
 set.seed(123)
 fitA <- randomForest(Activity ~ ., data=train[complete.cases(train[1:7557]),-c(1,2,7559)], 
-             ntree=4000, importance=TRUE)
+             ntree=4, importance=TRUE)
 summary(fitA)
 test$Activity.pred = predict(fitA, test)
 confusionMatrix(test$Activity.pred, test$Activity)
@@ -130,3 +133,36 @@ auc(roc(test$Social.pred, test$Social))
 ```
 
 # (Add your models here...)
+
+## Neural nets
+
+```{r}
+library(caret)
+library(AUC)
+
+set.seed(123)
+library(penalized)
+
+X = train[complete.cases(train[1:7557]),-c(1,2,7558:7559)]
+y = train[complete.cases(train[1:7557]),c(7558)]
+y1 = as.factor(y == 'EXP' | y == 'MON')
+model = penalized(y1,penalized=X, lambda1=10^4,maxiter=1000)
+cols = coefficients(model,"penalized") > 0.000000000000000000001
+#cols = 1:7555
+
+
+fitA <- train(X[cols], y,
+                 trControl = trainControl(method = "none", classProbs = TRUE),
+                 method = "nnet",
+                 tuneGrid = data.frame(size=200,decay=0.01),
+                 verbose = TRUE,
+                 maxit = 1000,
+                 MaxNWts = 1000000,
+                 metric = "ROC")
+fitA
+
+summary(fitA)
+test$Activity.pred = predict(fitA, test)
+confusionMatrix(test$Activity.pred, test$Activity)
+auc(roc(test$Activity.pred, test$Activity))
+```
