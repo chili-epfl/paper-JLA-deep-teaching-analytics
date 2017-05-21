@@ -5,6 +5,8 @@
 # NB: It requires quite a few data files from different schemas for the graphs to work correctly
 
 library(ggplot2)
+library(jsonlite)
+library(caret)
 
 args <- commandArgs(trailingOnly=FALSE)
 # Get the --file argument to get the current script location
@@ -56,9 +58,11 @@ if(length(files)>0){
   for(file in files){
     
     out <- read.csv(paste(strdir,file,sep=.Platform$file.sep))
+    # Parsing confusion matrix
+    matrix <- fromJSON(as.character(out$cm))
+    cm <-  confusionMatrix(as.table(matrix))
     #print(out)
     data <- data.frame(label=out$label, auc=out$auc, kappa=out$kappa, acc=out$acc, f1=out$f1, lang="Python", stringsAsFactors = )
-    
     if(nrow(df)==0){
       df <- data 
     }
