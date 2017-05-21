@@ -7,9 +7,9 @@
 # This prefix serves to distinguish the labels of, say, the kind of model we train/test here, e.g., Random Forest, LSTMs5layers, etc.
 # Change it each time you generate a new file like this, to keep things findable!
 # And do not put "_" in the middle of the prefix (we use _ as separators in the visualization scripts)
-command <- "Train_Evaluate_LSTM-50PCA.py"
+command <- "Train_Evaluate_RF-LB9.R"
 # LABELPREFIX <- "SVMBestNoCorr_"
-LABELPREFIX <- "LSTM-2L-32hidden-50PCA_"
+LABELPREFIX <- "RF-LB9_"
 ###############################################
 
 
@@ -36,7 +36,8 @@ targets <- c("Activity", "Social")
 for(target in targets){
 
   # For each combination of data sources...
-  sources <- c("et","acc","vid","aud","acc,aud","aud,vid","acc,aud,vid","all")
+  #sources <- c("et","acc","vid","aud","acc,aud","aud,vid","acc,aud,vid","all")
+  sources <- c("all")
   for(source in sources){
 
     # General models (multi-teacher)
