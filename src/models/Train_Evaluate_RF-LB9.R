@@ -183,6 +183,10 @@ lookbk <- 9
 train <- createLookbackDataset(train,lookbk)
 test <- createLookbackDataset(test, lookbk)
 
+# Investigate a bit the PCA itself
+# estim_ncp(inpca, scale=T)
+# modPCAtrain<-PCA(inpca, scale.unit=T, ncp=k, graph=F)
+# dimdesc(modPCAtrain)
 
 #######################################################
 
@@ -192,9 +196,9 @@ test <- createLookbackDataset(test, lookbk)
 set.seed(123)
 input <- data.frame()
 if(target=='Activity'){
-  input <- lbtrain %>% select(-session, -timestamp, -Social) %>% filter(complete.cases(.)) # For sequence-dependent models the complete.cases may not be needed/advisable  
+  input <- train %>% select(-session, -timestamp, -Social) %>% filter(complete.cases(.)) # For sequence-dependent models the complete.cases may not be needed/advisable  
 }else if(target=='Social'){
-  input <- lbtrain %>% select(-session, -timestamp, -Activity) %>% filter(complete.cases(.)) # For sequence-dependent models the complete.cases may not be needed/advisable  
+  input <- train %>% select(-session, -timestamp, -Activity) %>% filter(complete.cases(.)) # For sequence-dependent models the complete.cases may not be needed/advisable  
 }else{
   stop("Wrong target variable. Should be either Activity or Social")
 }
