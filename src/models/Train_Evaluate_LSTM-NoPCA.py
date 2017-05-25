@@ -338,7 +338,7 @@ history = model.fit(X_train_st_reshaped, dummy_y_train_reshaped, validation_data
 # For other metrics, see http://machinelearningmastery.com/metrics-evaluate-machine-learning-algorithms-python/
 
 # Other performance/accuracy metrics
-Y_pred = model.predict(X_test_st.reshape((1,) + X_st_pca.shape ))[0,:,:]
+Y_pred = model.predict(X_test_st.reshape((1,) + X_test_st.shape ))[0,:,:]
 
 # Accuracy
 print('Accuracy:')
