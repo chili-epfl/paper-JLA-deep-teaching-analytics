@@ -7,9 +7,9 @@
 # This prefix serves to distinguish the labels of, say, the kind of model we train/test here, e.g., Random Forest, LSTMs5layers, etc.
 # Change it each time you generate a new file like this, to keep things findable!
 # And do not put "_" in the middle of the prefix (we use _ as separators in the visualization scripts)
-command <- "Train_Evaluate_LSTM-100PCA-DeepDrop.py"
+command <- "Train_Evaluate_RF_MC.R"
 # LABELPREFIX <- "SVMBestNoCorr_"
-LABELPREFIX <- "LSTM-100PCA-DeepDrop_"
+LABELPREFIX <- "RF_MC_"
 ###############################################
 
 
@@ -63,22 +63,22 @@ for(target in targets){
 
     ## Leave one teacher out (train on one, test on the other)
     teachers <- c("teacher1","teacher2")
-    for(i in 1:length(teachers)){
-      t <- teachers[i]
-
-      trainsessions <- sessions[!grepl(t,sessions,fixed=T)]
-      trainstr <- paste(trainsessions, collapse=",")
-      testsessions <- sessions[grepl(t,sessions,fixed=T)]
-      teststr <- paste(testsessions, collapse=",")
-
-      label <- paste(LABELPREFIX,gsub(pattern = ",", replacement = "", x = source),
-                     "_GM_LOTO_",target,"_",i,sep="")
-
-      # We have to build commands of the form: <command> <label> <target-variable> <data-sources> <train-set-sessions> <test-set-sessions>
-      cmdLine <- paste(command,wrap(label),wrap(target),wrap(source),wrap(trainstr),wrap(teststr))
-
-      lines <- c(lines, cmdLine)
-    }
+    # for(i in 1:length(teachers)){
+    #   t <- teachers[i]
+    # 
+    #   trainsessions <- sessions[!grepl(t,sessions,fixed=T)]
+    #   trainstr <- paste(trainsessions, collapse=",")
+    #   testsessions <- sessions[grepl(t,sessions,fixed=T)]
+    #   teststr <- paste(testsessions, collapse=",")
+    # 
+    #   label <- paste(LABELPREFIX,gsub(pattern = ",", replacement = "", x = source),
+    #                  "_GM_LOTO_",target,"_",i,sep="")
+    # 
+    #   # We have to build commands of the form: <command> <label> <target-variable> <data-sources> <train-set-sessions> <test-set-sessions>
+    #   cmdLine <- paste(command,wrap(label),wrap(target),wrap(source),wrap(trainstr),wrap(teststr))
+    # 
+    #   lines <- c(lines, cmdLine)
+    # }
 
     # Personalized models (trained and tested with data from ONE teacher)
 
@@ -106,24 +106,24 @@ for(target in targets){
     }
 
     ## Leave one situation out (only for teacher 2, teacher 1 has only 1 situation)
-    partsessions <- sessions[grepl("teacher2",sessions,fixed=T)]
-    situations <- c("day1","day2","day3","day4")
-    for(i in 1:length(situations)){
-      s <- situations[i]
-      trainsessions <- partsessions[!grepl(s,partsessions,fixed=T)]
-      trainstr <- paste(trainsessions, collapse=",")
-      testsessions <- partsessions[grepl(s,partsessions,fixed=T)]
-      teststr <- paste(testsessions, collapse=",")
-
-      label <- paste(LABELPREFIX,gsub(pattern = ",", replacement = "", x = source),
-                     "_PM_LOSitO_",target,"_",i,sep="")
-
-      # We have to build commands of the form: <command> <label> <target-variable> <data-sources> <train-set-sessions> <test-set-sessions>
-      cmdLine <- paste(command,wrap(label),wrap(target),wrap(source),wrap(trainstr),wrap(teststr))
-
-      lines <- c(lines, cmdLine)
-
-    }
+    # partsessions <- sessions[grepl("teacher2",sessions,fixed=T)]
+    # situations <- c("day1","day2","day3","day4")
+    # for(i in 1:length(situations)){
+    #   s <- situations[i]
+    #   trainsessions <- partsessions[!grepl(s,partsessions,fixed=T)]
+    #   trainstr <- paste(trainsessions, collapse=",")
+    #   testsessions <- partsessions[grepl(s,partsessions,fixed=T)]
+    #   teststr <- paste(testsessions, collapse=",")
+    # 
+    #   label <- paste(LABELPREFIX,gsub(pattern = ",", replacement = "", x = source),
+    #                  "_PM_LOSitO_",target,"_",i,sep="")
+    # 
+    #   # We have to build commands of the form: <command> <label> <target-variable> <data-sources> <train-set-sessions> <test-set-sessions>
+    #   cmdLine <- paste(command,wrap(label),wrap(target),wrap(source),wrap(trainstr),wrap(teststr))
+    # 
+    #   lines <- c(lines, cmdLine)
+    # 
+    # }
 
 
   }
