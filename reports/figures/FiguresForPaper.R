@@ -1,6 +1,8 @@
 library(ggplot2)
+require(gridExtra)
 
 data <- read.csv("../../data/processed/completeDataset.csv", stringsAsFactors = F)
+
 
 data$Teacher <- as.factor(ifelse(grepl("teacher1", data$session, fixed = T), "T1", "T2"))
 data$Activity <- ifelse(is.na(as.character(data$Activity.win)) | 
@@ -19,7 +21,7 @@ levels(data$Activity) <- c("Explanation", "Monitoring", "Other", "Questioning", 
 data$Activity <- factor(data$Activity,levels(data$Activity)[c(1,2,4,5,3)])
 episodesAct <- as.data.frame(table(data$Activity, data$Teacher))
 names(episodesAct) <- c("Type", "Teacher", "Episodes")
-ggplot(episodesAct, aes(x=Type, y=Episodes, fill=Teacher))+geom_bar(stat="identity")+
+plot1 <- ggplot(episodesAct, aes(x=Type, y=Episodes, fill=Teacher))+geom_bar(stat="identity")+
   theme_minimal()+scale_fill_grey()+ggtitle("Number of episodes, Teaching activity")+
   labs(x="Type of teaching activity", y="Episodes")
 
@@ -27,25 +29,30 @@ data$Social <- as.factor(data$Social)
 levels(data$Social) <- c("Class-wide", "Small group", "Individual", "Other")
 episodesSoc <- as.data.frame(table(data$Social, data$Teacher))
 names(episodesSoc) <- c("Type", "Teacher", "Episodes")
-ggplot(episodesSoc, aes(x=Type, y=Episodes, fill=Teacher))+geom_bar(stat="identity")+
+plot2 <- ggplot(episodesSoc, aes(x=Type, y=Episodes, fill=Teacher))+geom_bar(stat="identity")+
   theme_minimal()+scale_fill_grey()+ggtitle("Number of episodes, Social plane")+
   labs(x="Social plane of interaction", y="Episodes")
+
+bitmap("Figure2-new-hires.tiff", height = 4, width = 12, units = 'in', type="tifflzw", res=600)
+grid.arrange(plot1, plot2, ncol=2)
+dev.off()
 
 ######## Figure on model performances
 
 load('./perfsdata.Rdata')
-
-moredatafiles <- list.files(".", "RF_MC_*")
-for(f in moredatafiles){
-  load(f)
-  d<-data.frame(label=label, auc=auc, kappa=cm$overall['Kappa'], 
-                acc=cm$overall['Accuracy'], f1=f1, lang="R", model="RF_MC", 
-                sources="all", validation="LOSO", 
-                target=ifelse(grepl(pattern = "Activity", x = label, fixed = T), "Activity", "Social"), 
-                modeltype=ifelse(grepl(pattern = "GM", x = label, fixed = T), "GM", "PM"),
-                modelsources="RF_MC_all")
-  df<-rbind(df,d)
-}
+# EXecute only if the Rdata does not have the RF-MC models
+# moredatafiles <- list.files(".", "RF_MC_*")
+# for(f in moredatafiles){
+#   load(f)
+#   d<-data.frame(label=label, auc=auc, kappa=cm$overall['Kappa'], 
+#                 acc=cm$overall['Accuracy'], f1=f1, lang="R", model="RF_MC", 
+#                 sources="all", validation="LOSO", 
+#                 target=ifelse(grepl(pattern = "Activity", x = label, fixed = T), "Activity", "Social"), 
+#                 modeltype=ifelse(grepl(pattern = "GM", x = label, fixed = T), "GM", "PM"),
+#                 modelsources="RF_MC_all")
+#   df<-rbind(df,d)
+# }
+# save(df, file = './perfsdata.Rdata')
 
 df$class <- as.factor(ifelse(df$model=="RF" | df$model=="SVMBestNoCorr","Time-independent","Time-aware"))
 # Personalized models
@@ -63,13 +70,18 @@ levels(evalPM$model) <- c("Markov Chain-enhanced\nRandom Forest",
 meansPM <- aggregate(f1~model+target, evalPM, mean)
 mediansPM <- aggregate(f1~model+target, evalPM, median)
 
-ggplot(evalPM, aes(x=model, y=f1, fill=class))+geom_boxplot()+
+plot3 <- ggplot(evalPM, aes(x=model, y=f1, fill=class))+geom_boxplot()+
   theme_minimal()+scale_fill_grey(start = 0.5, end=0.8)+coord_flip()+
   geom_text(data=mediansPM, aes(x=model, label=sprintf("%0.3f", round(f1, digits = 3)), y=1), inherit.aes = F)+
   facet_wrap(~target)+ylim(0,1)+#geom_point()+
   labs(y="F1 Score", x="Model")+
   ggtitle("Personalized model performance, Leave-one-session-out evaluation")+
   theme(panel.spacing = unit(4, "lines"))
+
+bitmap("Figure3-new-hires.tiff", height = 4, width = 12, units = 'in', type="tifflzw", res=600)
+plot3
+dev.off()
+
 
 # Generalized models
 evalGM <- df[df$validation=="LOSO" & df$modeltype=="GM" & df$sources=="all",]
@@ -87,10 +99,14 @@ levels(evalGM$model) <- c("Markov Chain-enhanced\nRandom Forest",
 
 meansGM <- aggregate(f1~model+target, evalGM, mean)
 mediansGM <- aggregate(f1~model+target, evalGM, median)
-ggplot(evalGM, aes(x=model, y=f1, fill=class))+geom_boxplot()+
+plot4 <- ggplot(evalGM, aes(x=model, y=f1, fill=class))+geom_boxplot()+
   theme_minimal()+scale_fill_grey(start = 0.5, end=0.8)+coord_flip()+
   geom_text(data=mediansGM, aes(x=model, label=sprintf("%0.3f", round(f1, digits = 3)), y=1), inherit.aes = F)+
   facet_wrap(~target)+ylim(0,1)+#geom_point()+
   labs(y="F1 Score", x="Model")+
   ggtitle("Generalized model performance, Leave-one-session-out evaluation")+
   theme(panel.spacing = unit(4, "lines"))
+
+bitmap("Figure4-new-hires.tiff", height = 4, width = 12, units = 'in', type="tifflzw", res=600)
+plot4
+dev.off()
